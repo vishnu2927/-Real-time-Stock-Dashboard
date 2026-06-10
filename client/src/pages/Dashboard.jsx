@@ -12,7 +12,7 @@ const marketSymbols = [
   { symbol: 'SPY', companyName: 'S&P 500' },
   { symbol: 'QQQ', companyName: 'NASDAQ' },
   { symbol: 'DIA', companyName: 'DOW' },
-  { symbol: 'BTCUSD', companyName: 'BTC' }
+  { symbol: 'BINANCE:BTCUSDT', companyName: 'BTC' }
 ];
 
 /**
