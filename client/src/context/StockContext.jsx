@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { stockAPI, watchlistAPI } from '../services/api';
 import { useAuth } from './AuthContext';
@@ -14,7 +14,9 @@ export function StockProvider({ children }) {
   const [watchlist, setWatchlist] = useState([]);
   const [selectedSymbol, setSelectedSymbol] = useState('AAPL');
   const [searchResults, setSearchResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
   const [isMarketOpen, setIsMarketOpen] = useState(false);
+  const searchCacheRef = useRef(new Map());
 
   /**
    * Selects a stock symbol.
@@ -34,10 +36,26 @@ export function StockProvider({ children }) {
       return [];
     }
 
-    const { data } = await stockAPI.search(query);
-    const results = data.results || [];
-    setSearchResults(results);
-    return results;
+    const normalizedQuery = query.trim().toUpperCase();
+    const cached = searchCacheRef.current.get(normalizedQuery);
+    if (cached && Date.now() - cached.timestamp < 60_000) {
+      setSearchResults(cached.results);
+      return cached.results;
+    }
+
+    setSearchLoading(true);
+    try {
+      const { data } = await stockAPI.search(query);
+      const results = data.results || [];
+      setSearchResults(results);
+      searchCacheRef.current.set(normalizedQuery, { results, timestamp: Date.now() });
+      return results;
+    } catch (error) {
+      toast.error('Failed to load data. Retrying...');
+      throw error;
+    } finally {
+      setSearchLoading(false);
+    }
   }
 
   /**
@@ -108,6 +126,7 @@ export function StockProvider({ children }) {
       watchlist,
       selectedSymbol,
       searchResults,
+      searchLoading,
       isMarketOpen,
       selectStock,
       searchStocks,
@@ -117,7 +136,7 @@ export function StockProvider({ children }) {
       setSearchResults,
       setWatchlist
     }),
-    [watchlist, selectedSymbol, searchResults, isMarketOpen]
+    [watchlist, selectedSymbol, searchResults, searchLoading, isMarketOpen]
   );
 
   return <StockContext.Provider value={value}>{children}</StockContext.Provider>;

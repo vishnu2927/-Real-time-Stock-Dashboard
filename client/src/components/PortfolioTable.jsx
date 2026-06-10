@@ -55,6 +55,8 @@ export default function PortfolioTable({ rows = [], onDelete }) {
     setSortDirection('asc');
   }
 
+  const skeletonRows = Array.from({ length: 3 });
+
   return (
     <div className="overflow-hidden rounded-3xl border border-white/10 bg-[#0F1629] backdrop-blur">
       <div className="overflow-x-auto">
@@ -70,15 +72,24 @@ export default function PortfolioTable({ rows = [], onDelete }) {
             </tr>
           </thead>
           <tbody>
-            {sortedRows.length === 0 ? (
+            {rows.length === 0 ? (
               <tr>
-                <td className="px-4 py-6 text-slate-500" colSpan={columns.length + 1}>No holdings yet.</td>
+                <td className="px-4 py-6 text-slate-500" colSpan={columns.length + 1}>No holdings yet. Add your first stock!</td>
               </tr>
+            ) : sortedRows.length === 0 ? (
+              skeletonRows.map((_, index) => (
+                <tr key={index} className="border-t border-white/5">
+                  {columns.map((column) => (
+                    <td key={column.key} className="px-4 py-3"><div className="h-4 w-full rounded-full bg-white/10 animate-pulse" /></td>
+                  ))}
+                  <td className="px-4 py-3"><div className="h-8 w-16 rounded-full bg-white/10 animate-pulse" /></td>
+                </tr>
+              ))
             ) : (
               sortedRows.map((row) => {
                 const pnlPositive = Number(row.profitLoss || 0) >= 0;
                 return (
-                  <tr key={row._id || row.symbol} className="border-t border-white/5 transition hover:bg-white/5">
+                  <tr key={row._id || row.symbol} className="cursor-pointer border-t border-white/5 transition hover:bg-white/5" onClick={() => window.location.assign(`/stock/${row.symbol}`)}>
                     <td className="px-4 py-3 font-semibold text-white">{row.symbol}</td>
                     <td className="px-4 py-3">{row.quantity}</td>
                     <td className="px-4 py-3">${Number(row.buyPrice || 0).toFixed(2)}</td>

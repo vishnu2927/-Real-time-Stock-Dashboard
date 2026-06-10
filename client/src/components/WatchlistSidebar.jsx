@@ -21,9 +21,9 @@ export default function WatchlistSidebar() {
     setSymbol('');
   }
 
-  return (
-    <motion.aside layout className="fixed right-4 top-24 z-30 hidden h-[calc(100vh-7rem)] w-80 md:block">
-      <div className="flex h-full flex-col rounded-3xl border border-white/10 bg-[#0F1629]/95 p-4 shadow-2xl shadow-black/25 backdrop-blur">
+  function WatchlistContent() {
+    return (
+      <>
         <div className="mb-4 flex items-center justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Watchlist</p>
@@ -50,7 +50,14 @@ export default function WatchlistSidebar() {
               </div>
 
               <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
-                {watchlist.length === 0 ? <div className="rounded-2xl border border-dashed border-white/10 p-4 text-sm text-slate-500">No watchlist symbols yet.</div> : null}
+                {watchlist.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-white/10 p-4 text-sm text-slate-500">
+                    <div className="flex items-center gap-2 text-slate-300">
+                      <span className="text-lg">＋</span>
+                      Add your first stock above ↑
+                    </div>
+                  </div>
+                ) : null}
                 {watchlist.map((item) => {
                   const live = prices[item] || {};
                   const isUp = (live.change || 0) >= 0;
@@ -90,7 +97,23 @@ export default function WatchlistSidebar() {
             <div className="flex flex-1 items-center justify-center text-sm text-slate-500">Sidebar collapsed</div>
           )}
         </AnimatePresence>
-      </div>
-    </motion.aside>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <motion.aside layout className="fixed right-4 top-24 z-30 hidden h-[calc(100vh-7rem)] w-80 md:block">
+        <div className="flex h-full flex-col rounded-3xl border border-white/10 bg-[#0F1629]/95 p-4 shadow-2xl shadow-black/25 backdrop-blur">
+          <WatchlistContent />
+        </div>
+      </motion.aside>
+
+      <motion.aside layout className="fixed inset-x-0 bottom-0 z-30 md:hidden">
+        <div className="mx-3 mb-3 max-h-[50vh] rounded-t-3xl border border-white/10 bg-[#0F1629]/95 p-4 shadow-2xl shadow-black/25 backdrop-blur">
+          <WatchlistContent />
+        </div>
+      </motion.aside>
+    </>
   );
 }

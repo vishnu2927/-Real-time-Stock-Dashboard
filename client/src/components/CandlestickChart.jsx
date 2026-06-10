@@ -25,6 +25,8 @@ export default function CandlestickChart({ symbol, history, range = '1W', onRang
     }));
   }, [history]);
 
+  const isLoading = !history;
+
   useEffect(() => {
     const container = containerRef.current;
     if (!container || chartData.length === 0) {
@@ -130,8 +132,24 @@ export default function CandlestickChart({ symbol, history, range = '1W', onRang
       </div>
       <div ref={containerRef} className="relative min-h-[420px] w-full">
         <div ref={tooltipRef} className="pointer-events-none absolute z-10 rounded-xl border border-white/10 bg-slate-950/95 px-3 py-2 text-xs text-white opacity-0 shadow-2xl shadow-black/30 backdrop-blur" />
+
+        {isLoading ? (
+          <div className="absolute inset-0 grid grid-cols-8 items-end gap-3 p-6">
+            {Array.from({ length: 8 }).map((_, index) => (
+              <div key={index} className="flex flex-col items-center gap-2">
+                <div className="w-full rounded-2xl bg-white/10 animate-pulse" style={{ height: `${120 + index * 14}px` }} />
+                <div className="h-2 w-10 rounded-full bg-white/10 animate-pulse" />
+              </div>
+            ))}
+          </div>
+        ) : null}
+
+        {!isLoading && chartData.length === 0 ? (
+          <div className="absolute inset-0 flex items-center justify-center rounded-3xl border border-dashed border-white/10 text-sm text-slate-500">
+            No chart data available
+          </div>
+        ) : null}
       </div>
-      {chartData.length === 0 ? <div className="absolute inset-0 flex items-center justify-center text-sm text-slate-500">No chart data available</div> : null}
     </section>
   );
 }

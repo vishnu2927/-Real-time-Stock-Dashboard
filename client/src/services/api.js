@@ -1,12 +1,24 @@
 import axios from 'axios';
+import toast from 'react-hot-toast';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const WS_BASE_URL = import.meta.env.VITE_WS_URL || 'http://localhost:5000';
+
+function buildApiBaseUrl(baseUrl) {
+  const trimmed = baseUrl.replace(/\/$/, '');
+  return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
+}
+
+export const API_URL = buildApiBaseUrl(API_BASE_URL);
+export const WS_URL = WS_BASE_URL.replace(/\/$/, '');
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  baseURL: API_URL,
   withCredentials: true
 });
 
 const refreshClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  baseURL: API_URL,
   withCredentials: true
 });
 
@@ -46,6 +58,20 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
     const status = error.response?.status;
+
+    if (!error.response && originalRequest && !originalRequest._wakeRetry) {
+      originalRequest._wakeRetry = true;
+      const wakingToast = toast.loading('Waking up server...');
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      toast.dismiss(wakingToast);
+
+      try {
+        return await api(originalRequest);
+      } catch (wakeError) {
+        toast.error('Failed to load data. Retrying...');
+        return Promise.reject(wakeError);
+      }
+    }
 
     if (status === 401 && !originalRequest?._retry && !originalRequest?.url?.includes('/auth/refresh')) {
       originalRequest._retry = true;

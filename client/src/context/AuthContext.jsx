@@ -1,5 +1,4 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import toast from 'react-hot-toast';
 import { authAPI, clearTokens, storeTokens } from '../services/api';
 
 const AuthContext = createContext(null);
@@ -17,12 +16,14 @@ export function AuthProvider({ children }) {
 
   /**
    * Logs the current user out.
+   * @param {{silent?: boolean}} [options]
    */
-  function logout() {
+  function logout(options = {}) {
+    const { silent = false } = options;
     clearTokens();
     setAccessToken(null);
     setUser(null);
-    toast.success('Logged out');
+    void silent;
   }
 
   /**
@@ -35,10 +36,15 @@ export function AuthProvider({ children }) {
       return null;
     }
 
-    const { data } = await authAPI.refresh({ refreshToken: refreshTokenValue });
-    storeTokens(data);
-    setAccessToken(data.accessToken);
-    return data.accessToken;
+    try {
+      const { data } = await authAPI.refresh({ refreshToken: refreshTokenValue });
+      storeTokens(data);
+      setAccessToken(data.accessToken);
+      return data.accessToken;
+    } catch (_error) {
+      logout({ silent: true });
+      return null;
+    }
   }
 
   /**
@@ -59,7 +65,6 @@ export function AuthProvider({ children }) {
     storeTokens(data);
     setAccessToken(data.accessToken);
     setUser(data.user);
-    toast.success('Login successful');
     return data;
   }
 
@@ -72,7 +77,6 @@ export function AuthProvider({ children }) {
     storeTokens(data);
     setAccessToken(data.accessToken);
     setUser(data.user);
-    toast.success('Account created');
     return data;
   }
 
@@ -80,27 +84,24 @@ export function AuthProvider({ children }) {
     let mounted = true;
 
     async function bootstrap() {
-      try {
-        const savedAccessToken = localStorage.getItem('accessToken');
-        if (!savedAccessToken) {
-          if (mounted) setIsLoading(false);
-          return;
-        }
+      const savedAccessToken = localStorage.getItem('accessToken');
+      if (!savedAccessToken) {
+        if (mounted) setIsLoading(false);
+        return;
+      }
 
-        setAccessToken(savedAccessToken);
+      setAccessToken(savedAccessToken);
+
+      try {
         await loadMe();
       } catch (_error) {
-        try {
-          await refreshToken();
-          await loadMe();
-        } catch (refreshError) {
-          clearTokens();
-          setAccessToken(null);
-          setUser(null);
-          if (mounted) {
-            toast.error('Session expired');
+        const refreshedToken = await refreshToken();
+        if (refreshedToken) {
+          try {
+            await loadMe();
+          } catch (_loadError) {
+            logout({ silent: true });
           }
-          void refreshError;
         }
       } finally {
         if (mounted) setIsLoading(false);

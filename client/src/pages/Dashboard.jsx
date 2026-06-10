@@ -28,13 +28,13 @@ export default function Dashboard() {
   return (
     <div className="grid gap-6 xl:grid-cols-[1fr_20rem]">
       <section className="space-y-6">
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
           {topCards.map((item) => (
-            <StockCard key={item.symbol} symbol={item.symbol} companyName={item.companyName} price={item.price} change={item.change} changePercent={item.changePercent} />
+            <StockCard key={item.symbol} symbol={item.symbol} companyName={item.companyName} price={item.price} change={item.change} changePercent={item.changePercent} isLoading={!prices[item.symbol]} />
           ))}
         </div>
 
-        <CandlestickChart symbol={selectedSymbol} history={history} range="1W" onRangeChange={setRange} />
+        <CandlestickChart symbol={selectedSymbol} history={history} range="1W" onRangeChange={setRange} isLoading={isLoading} />
 
         <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
           <LineChart history={history} prediction={prediction} />

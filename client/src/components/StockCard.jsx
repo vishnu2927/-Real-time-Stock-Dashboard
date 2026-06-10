@@ -1,13 +1,14 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useWebSocket } from '../hooks/useWebSocket';
+import AnimatedNumber from './AnimatedNumber';
 
 /**
  * Renders a real-time market card with a compact sparkline.
  * @param {{symbol: string, companyName?: string, price?: number, change?: number, changePercent?: number}} props
  */
-export default function StockCard({ symbol, companyName, price = 0, change = 0, changePercent = 0 }) {
+export default function StockCard({ symbol, companyName, price = 0, change = 0, changePercent = 0, isLoading = false }) {
   const navigate = useNavigate();
   const { prices } = useWebSocket([symbol]);
   const live = prices[symbol] || {};
@@ -15,6 +16,38 @@ export default function StockCard({ symbol, companyName, price = 0, change = 0, 
   const displayChange = live.change ?? change;
   const displayChangePercent = live.changePercent ?? changePercent;
   const isUp = displayChange >= 0;
+  const [flashState, setFlashState] = useState(null);
+  const previousPriceRef = useRef(displayPrice);
+
+  useEffect(() => {
+    if (previousPriceRef.current === displayPrice) return;
+    setFlashState(displayPrice > previousPriceRef.current ? 'up' : 'down');
+    const timeout = setTimeout(() => setFlashState(null), 1000);
+    previousPriceRef.current = displayPrice;
+    return () => clearTimeout(timeout);
+  }, [displayPrice]);
+
+  if (isLoading) {
+    return (
+      <div className="group rounded-3xl border border-white/10 bg-[#0F1629]/90 p-4 shadow-2xl shadow-black/20 backdrop-blur">
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-2">
+            <div className="h-3 w-16 rounded-full bg-white/10 animate-pulse" />
+            <div className="h-5 w-28 rounded-full bg-white/10 animate-pulse" />
+          </div>
+          <div className="h-6 w-16 rounded-full bg-white/10 animate-pulse" />
+        </div>
+        <div className="mt-4 flex items-end justify-between gap-4">
+          <div className="space-y-2">
+            <div className="h-8 w-24 rounded-full bg-white/10 animate-pulse" />
+            <div className="h-4 w-20 rounded-full bg-white/10 animate-pulse" />
+            <div className="h-3 w-32 rounded-full bg-white/10 animate-pulse" />
+          </div>
+          <div className="h-14 w-36 rounded-2xl bg-white/5 animate-pulse" />
+        </div>
+      </div>
+    );
+  }
 
   const sparkline = useMemo(() => {
     const base = displayPrice || 100;
@@ -41,7 +74,7 @@ export default function StockCard({ symbol, companyName, price = 0, change = 0, 
       whileHover={{ y: -2 }}
       whileTap={{ scale: 0.98 }}
       onClick={() => navigate(`/stock/${symbol}`)}
-      className="group rounded-3xl border border-white/10 bg-[#0F1629]/90 p-4 text-left shadow-2xl shadow-black/20 backdrop-blur transition hover:border-emerald-400/30"
+      className={`group rounded-3xl border border-white/10 bg-[#0F1629]/90 p-4 text-left shadow-2xl shadow-black/20 backdrop-blur transition hover:border-emerald-400/30 ${flashState === 'up' ? 'shadow-[0_0_0_1px_rgba(0,212,170,0.3)]' : ''} ${flashState === 'down' ? 'shadow-[0_0_0_1px_rgba(255,71,87,0.3)]' : ''}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div>
@@ -55,12 +88,18 @@ export default function StockCard({ symbol, companyName, price = 0, change = 0, 
 
       <div className="mt-4 flex items-end justify-between gap-4">
         <div>
-          <motion.div key={displayPrice.toFixed(2)} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="text-2xl font-semibold text-white">
-            ${displayPrice.toFixed(2)}
+          <motion.div
+            key={displayPrice.toFixed(2)}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`text-2xl font-semibold transition-colors duration-1000 ${flashState === 'up' ? 'text-emerald-300' : flashState === 'down' ? 'text-rose-300' : 'text-white'}`}
+          >
+            <AnimatedNumber value={displayPrice} prefix="$" decimals={2} />
           </motion.div>
-          <p className={`mt-1 text-sm ${isUp ? 'text-emerald-300' : 'text-rose-300'}`}>
+          <p className={`mt-1 text-sm transition-colors duration-1000 ${flashState === 'up' ? 'text-emerald-300' : flashState === 'down' ? 'text-rose-300' : isUp ? 'text-emerald-300' : 'text-rose-300'}`}>
             {displayChange >= 0 ? '+' : ''}{displayChange.toFixed(2)}
           </p>
+          {live.timestamp ? <p className="mt-1 text-[11px] text-slate-500">Last updated: {Math.max(0, Math.round((Date.now() - new Date(live.timestamp).getTime()) / 1000))}s ago</p> : null}
         </div>
 
         <svg viewBox={`0 0 ${width} ${height}`} className="h-14 w-36 text-emerald-400/90">

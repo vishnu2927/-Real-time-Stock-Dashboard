@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
+import { WS_URL } from '../services/api';
 
 /**
  * Subscribes to live price updates for the provided symbols.
@@ -8,26 +9,43 @@ import { io } from 'socket.io-client';
  */
 export function useWebSocket(symbols = []) {
   const socketRef = useRef(null);
+  const reconnectTimerRef = useRef(null);
   const [prices, setPrices] = useState({});
   const [isConnected, setIsConnected] = useState(false);
+  const [isReconnecting, setIsReconnecting] = useState(false);
   const stableSymbols = useMemo(() => [...new Set(symbols.filter(Boolean).map((symbol) => String(symbol).toUpperCase()))], [symbols.join('|')]);
 
   useEffect(() => {
-    const socket = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000', {
+    const socket = io(WS_URL, {
       transports: ['websocket'],
       reconnection: true,
       reconnectionAttempts: Infinity,
-      reconnectionDelay: 1000
+      reconnectionDelay: 3000,
+      reconnectionDelayMax: 3000
     });
 
     socket.on('connect', () => {
       setIsConnected(true);
+      setIsReconnecting(false);
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
       if (stableSymbols.length > 0) {
         socket.emit('subscribe', { symbols: stableSymbols });
       }
     });
 
-    socket.on('disconnect', () => setIsConnected(false));
+    socket.on('disconnect', () => {
+      setIsConnected(false);
+      setIsReconnecting(true);
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+      }
+      reconnectTimerRef.current = setTimeout(() => {
+        socket.connect();
+      }, 3000);
+    });
     socket.on('price_update', (payload) => {
       setPrices((current) => ({ ...current, [payload.symbol]: payload }));
     });
@@ -35,6 +53,10 @@ export function useWebSocket(symbols = []) {
     socketRef.current = socket;
 
     return () => {
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
       if (stableSymbols.length > 0) {
         socket.emit('unsubscribe', { symbols: stableSymbols });
       }
@@ -45,5 +67,5 @@ export function useWebSocket(symbols = []) {
     };
   }, [stableSymbols.join('|')]);
 
-  return { prices, isConnected };
+  return { prices, isConnected, isReconnecting };
 }
