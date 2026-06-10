@@ -62,3 +62,7 @@ export const mlAPI = {
 };
 
 export default api;
+export const clearTokens = () => {
+  localStorage.removeItem('accessToken');
+  localStorage.removeItem('refreshToken');
+};
