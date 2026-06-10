@@ -1,6 +1,8 @@
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
+export const WS_URL = import.meta.env.VITE_WS_URL || 'http://localhost:5000';
+
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000',
   timeout: 15000,
