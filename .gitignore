@@ -1,0 +1,16 @@
+node_modules
+/dist
+/build
+coverage
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+*.log
+client/.vite
+client/dist
+server/uploads
+ml-service/.venv
+ml-service/__pycache__
+ml-service/*.pyc
