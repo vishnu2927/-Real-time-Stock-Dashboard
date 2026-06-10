@@ -29,6 +29,16 @@ api.interceptors.response.use(
   }
 );
 
+export const storeTokens = (accessToken, refreshToken) => {
+  localStorage.setItem('accessToken', accessToken);
+  if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
+};
+
+export const clearTokens = () => {
+  localStorage.removeItem('accessToken');
+  localStorage.removeItem('refreshToken');
+};
+
 export const authAPI = {
   register: (data) => api.post('/api/auth/register', data),
   login: (data) => api.post('/api/auth/login', data),
@@ -62,16 +72,3 @@ export const mlAPI = {
 };
 
 export default api;
-export const clearTokens = () => {
-  localStorage.removeItem('accessToken');
-  localStorage.removeItem('refreshToken');
-};
-export const storeTokens = (accessToken, refreshToken) => {
-  localStorage.setItem('accessToken', accessToken);
-  if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
-};
-
-export const clearTokens = () => {
-  localStorage.removeItem('accessToken');
-  localStorage.removeItem('refreshToken');
-};
